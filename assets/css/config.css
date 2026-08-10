@@ -1,0 +1,378 @@
+@charset "utf-8";
+/* ============================================================
+   리플렛마스터 — 메인(견적 구성) 페이지 시안
+   레이아웃/인터랙션 기준: apple.com/kr/shop/buy-mac/macbook-air
+   선택 항목 기준: lfleat-list.docx (견적 입력 요소 01~10)
+   공통 헤더·푸터는 leaflet.css 를 그대로 사용하고,
+   이 파일은 .cfg- 프리픽스로만 작성해 기존 스타일과 충돌하지 않게 한다.
+   ============================================================ */
+
+:root {
+  --cfg-line: #d8d8dc;
+  --cfg-line-soft: #ececee;
+  --cfg-ink: #101010;
+  --cfg-sub: #6b6b70;
+  --cfg-bg-soft: #f5f5f7;
+  --cfg-nav-h: 56px;
+  --cfg-radius: 14px;
+}
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* ------------------------------------------------------------
+   상단 고정 바
+   ------------------------------------------------------------ */
+.cfg-localnav {
+  position: sticky; top: var(--header-h); z-index: 90;
+  height: var(--cfg-nav-h);
+  background: rgba(255,255,255,.88);
+  backdrop-filter: saturate(180%) blur(18px);
+  border-bottom: 1px solid var(--cfg-line-soft);
+  transition: box-shadow .2s var(--ease-out);
+}
+.cfg-localnav.is-scrolled { box-shadow: 0 2px 14px rgba(0,0,0,.06); }
+.cfg-localnav__inner {
+  max-width: 1360px; height: 100%; margin: 0 auto; padding: 0 var(--side, 20px);
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.cfg-localnav__left { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.cfg-localnav__left strong { font-size: 17px; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; }
+.cfg-localnav__price { font-size: 13.5px; color: var(--cfg-sub); white-space: nowrap; }
+.cfg-localnav__right { display: flex; align-items: center; gap: 18px; }
+.cfg-chip-mini {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; color: var(--cfg-sub); white-space: nowrap;
+}
+.cfg-chip-mini svg { width: 17px; height: 17px; }
+
+/* ------------------------------------------------------------
+   공통 버튼 / 링크
+   ------------------------------------------------------------ */
+.cfg-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 44px; padding: 0 22px;
+  background: var(--cfg-ink); color: #fff;
+  border-radius: var(--radius-pill, 32px);
+  font-size: 15px; font-weight: 600; letter-spacing: -.01em;
+  transition: background .18s var(--ease-out), transform .18s var(--ease-out);
+  white-space: nowrap;
+}
+.cfg-btn:hover { background: var(--accent-hover, #333); }
+.cfg-btn:active { transform: scale(.98); }
+.cfg-btn--sm { height: 34px; padding: 0 16px; font-size: 13.5px; }
+.cfg-btn--lg { height: 54px; padding: 0 34px; font-size: 16.5px; }
+.cfg-btn--ghost { background: #fff; color: var(--cfg-ink); border: 1px solid var(--cfg-line); }
+.cfg-btn--ghost:hover { background: var(--cfg-bg-soft); }
+.cfg-link {
+  display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+  font-size: 14.5px; font-weight: 600; color: var(--cfg-ink);
+  border-bottom: 1px solid currentColor; padding-bottom: 1px;
+}
+.cfg-link em { font-style: normal; }
+
+/* ------------------------------------------------------------
+   레이아웃
+   ------------------------------------------------------------ */
+.cfg-main { position: relative; z-index: 1; padding-bottom: 90px; }
+.cfg-container { max-width: 1360px; margin: 0 auto; padding: 0 var(--side, 20px); }
+
+.cfg-hero {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 30px;
+  padding: 54px 0 40px;
+}
+.cfg-h1 {
+  font-size: clamp(34px, 4.4vw, 56px); font-weight: 800;
+  letter-spacing: -.035em; line-height: 1.08;
+}
+.cfg-hero__price { margin-top: 14px; font-size: 18px; font-weight: 600; }
+.cfg-hero__price span { font-weight: 400; color: var(--cfg-sub); font-size: 15px; }
+.cfg-hero__pills { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.cfg-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 42px; padding: 0 20px;
+  background: var(--cfg-bg-soft); border-radius: var(--radius-pill, 32px);
+  font-size: 13.5px; font-weight: 500; color: var(--cfg-ink);
+  transition: background .18s;
+}
+.cfg-pill:hover { background: var(--fill-hover, #ededed); }
+.cfg-pill em { font-style: normal; color: var(--cfg-sub); }
+.cfg-pill--line { background: #fff; border: 1px solid var(--cfg-line); }
+
+.cfg-layout {
+  display: grid; grid-template-columns: minmax(0, 1fr) 480px; gap: 56px;
+  align-items: start;
+}
+
+/* ------------------------------------------------------------
+   좌측 : 스티키 미리보기
+   ------------------------------------------------------------ */
+.cfg-visual__sticky {
+  position: sticky; top: calc(var(--header-h) + var(--cfg-nav-h) + 24px);
+}
+.cfg-visual__caption {
+  font-size: 14.5px; line-height: 1.6; color: var(--cfg-sub);
+  max-width: 420px; margin-bottom: 18px;
+}
+.cfg-stage {
+  position: relative;
+  background: var(--cfg-bg-soft); border-radius: 24px;
+  min-height: 460px; padding: 40px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+}
+.cfg-stage__art { width: 100%; max-width: 520px; }
+.cfg-stage__art svg { width: 100%; height: auto; display: block; }
+.cfg-stage__spec { font-size: 13.5px; font-weight: 600; color: var(--cfg-sub); letter-spacing: -.01em; }
+
+.cfg-gallery-nav { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 20px; }
+.cfg-gnav {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--cfg-bg-soft); color: #555;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .18s;
+}
+.cfg-gnav:hover { background: var(--fill-hover, #ededed); color: var(--cfg-ink); }
+.cfg-gnav svg { width: 18px; height: 18px; }
+.cfg-dots { display: inline-flex; align-items: center; gap: 9px; padding: 8px 12px; background: var(--cfg-bg-soft); border-radius: 20px; }
+.cfg-dot { width: 8px; height: 8px; border-radius: 50%; background: #c4c4c8; transition: background .18s, transform .18s; }
+.cfg-dot.is-on { background: var(--cfg-ink); transform: scale(1.15); }
+
+.cfg-visual__meta { list-style: none; margin-top: 26px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 22px; }
+.cfg-visual__meta li {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 13.5px; padding-bottom: 10px; border-bottom: 1px solid var(--cfg-line-soft);
+}
+.cfg-visual__meta b { font-weight: 600; }
+.cfg-visual__meta span { color: var(--cfg-sub); }
+
+/* ------------------------------------------------------------
+   우측 : 견적 선택 리스트
+   ------------------------------------------------------------ */
+.cfg-options { display: block; }
+.cfg-sec { padding: 44px 0; border-bottom: 1px solid var(--cfg-line-soft); scroll-margin-top: calc(var(--header-h) + var(--cfg-nav-h) + 20px); }
+.cfg-sec:first-child { padding-top: 0; }
+.cfg-sec:last-of-type { border-bottom: 0; }
+.cfg-h2 {
+  font-size: 24px; font-weight: 500; letter-spacing: -.028em; line-height: 1.3;
+  color: var(--cfg-ink);
+}
+.cfg-h2 span { font-weight: 800; }
+.cfg-h2--center { text-align: center; }
+.cfg-sec__note { margin-top: 10px; font-size: 13.5px; line-height: 1.6; color: var(--cfg-sub); }
+.cfg-sec__note b { font-weight: 700; color: var(--cfg-ink); }
+
+.cfg-grid { display: grid; gap: 12px; margin-top: 22px; }
+.cfg-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cfg-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cfg-list { display: grid; gap: 12px; margin-top: 22px; }
+.cfg-card--wide { grid-column: 1 / -1; }
+
+/* 선택 카드 */
+.cfg-card {
+  position: relative; display: flex; align-items: center; gap: 14px;
+  padding: 18px 20px; min-height: 74px;
+  background: #fff; border: 1px solid var(--cfg-line);
+  border-radius: var(--cfg-radius); cursor: pointer;
+  transition: border-color .16s var(--ease-out), box-shadow .16s var(--ease-out), background .16s;
+}
+.cfg-card:hover { border-color: #a9a9ae; }
+.cfg-card input { position: absolute; opacity: 0; width: 0; height: 0; }
+.cfg-card__body { flex: 1 1 auto; min-width: 0; display: block; }
+.cfg-card__title {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 15.5px; font-weight: 700; letter-spacing: -.02em;
+}
+.cfg-card__desc { display: block; margin-top: 5px; font-size: 13px; line-height: 1.55; color: var(--cfg-sub); }
+.cfg-card__eta { display: none; margin-top: 8px; font-size: 12.5px; font-weight: 600; color: var(--cfg-ink); }
+.cfg-card__price { flex: 0 0 auto; font-size: 14px; font-weight: 600; text-align: right; white-space: nowrap; }
+.cfg-card__price em { display: block; font-style: normal; font-size: 11.5px; font-weight: 400; color: var(--cfg-sub); }
+.cfg-tag {
+  font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: 0;
+  padding: 3px 8px; border-radius: 20px; background: var(--cfg-ink); color: #fff;
+}
+
+/* 선택 상태 */
+.cfg-card:has(input:checked) { border-color: var(--cfg-ink); box-shadow: inset 0 0 0 1px var(--cfg-ink); }
+.cfg-card:has(input:focus-visible) { outline: 2px solid #0a84ff; outline-offset: 2px; }
+.cfg-card:has(input:checked) .cfg-card__eta { display: block; }
+.cfg-card.is-muted { opacity: .48; }
+
+/* 칩형(진행 기관) */
+.cfg-card--chip { min-height: 58px; padding: 14px 16px; justify-content: center; text-align: center; }
+.cfg-card--chip .cfg-card__title { justify-content: center; font-size: 15px; }
+/* 수량 */
+.cfg-card--qty { min-height: 82px; align-items: flex-start; }
+/* 체크형(후가공) */
+.cfg-card--check { align-items: flex-start; }
+.cfg-card--check .cfg-card__title::before {
+  content: ""; flex: 0 0 auto; width: 18px; height: 18px; margin-right: 2px;
+  border: 1.5px solid var(--cfg-line); border-radius: 5px;
+  background: no-repeat center/12px url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 8.4 3.2 3.2L13 5'/%3E%3C/svg%3E");
+}
+.cfg-card--check:has(input:checked) .cfg-card__title::before { background-color: var(--cfg-ink); border-color: var(--cfg-ink); }
+
+/* 카드 안 직접 입력 */
+.cfg-inline-fields { display: none; margin-top: 14px; gap: 12px; flex-wrap: wrap; }
+.cfg-card--has-input:has(input:checked) .cfg-inline-fields { display: flex; }
+.cfg-field { display: inline-flex; align-items: center; gap: 8px; }
+.cfg-field label { font-size: 12.5px; color: var(--cfg-sub); }
+.cfg-field input {
+  width: 118px; height: 40px; padding: 0 12px;
+  border: 1px solid var(--cfg-line); border-radius: 10px;
+  font-family: inherit; font-size: 14.5px; font-weight: 600; color: var(--cfg-ink);
+  background: #fff;
+}
+.cfg-field input:focus { outline: 2px solid var(--cfg-ink); outline-offset: -1px; }
+.cfg-field i { font-style: normal; font-size: 13px; color: var(--cfg-sub); }
+
+/* 세그먼트(코팅 적용 면) */
+.cfg-subgroup { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
+.cfg-subgroup__label { font-size: 13.5px; font-weight: 600; }
+.cfg-seg { display: inline-flex; padding: 4px; background: var(--cfg-bg-soft); border-radius: 12px; }
+.cfg-seg__item { position: relative; }
+.cfg-seg__item input { position: absolute; opacity: 0; width: 0; height: 0; }
+.cfg-seg__item span {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 36px; padding: 0 22px; border-radius: 9px;
+  font-size: 14px; font-weight: 600; color: var(--cfg-sub); cursor: pointer;
+  transition: background .16s, color .16s;
+}
+.cfg-seg__item:has(input:checked) span { background: #fff; color: var(--cfg-ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+/* 안내 문구 */
+.cfg-alert {
+  margin-top: 14px; padding: 12px 14px;
+  background: #fff8e6; border: 1px solid #f0dfae; border-radius: 10px;
+  font-size: 13px; line-height: 1.6; color: #6a5320;
+}
+
+/* 도움말 카드 */
+.cfg-help {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  margin: 8px 0; padding: 24px 26px;
+  background: var(--cfg-bg-soft); border-radius: 18px;
+}
+.cfg-help h3 { font-size: 15.5px; font-weight: 700; letter-spacing: -.02em; }
+.cfg-help p { margin-top: 6px; font-size: 13px; line-height: 1.6; color: var(--cfg-sub); }
+
+/* 스타일 썸네일 */
+.cfg-styles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
+.cfg-style { position: relative; cursor: pointer; }
+.cfg-style input { position: absolute; opacity: 0; width: 0; height: 0; }
+.cfg-style__thumb {
+  display: block; position: relative; overflow: hidden;
+  aspect-ratio: 4 / 3; border-radius: 12px; background: var(--cfg-bg-soft);
+  border: 1px solid var(--cfg-line-soft);
+  transition: border-color .16s, box-shadow .16s;
+}
+.cfg-style__thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s var(--ease-out); }
+.cfg-style:hover .cfg-style__thumb img { transform: scale(1.04); }
+.cfg-style__thumb::after {
+  content: ""; position: absolute; right: 8px; top: 8px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,255,255,.9) no-repeat center/13px
+    url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23b0b0b4' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 8.4 3.2 3.2L13 5'/%3E%3C/svg%3E");
+  box-shadow: 0 1px 3px rgba(0,0,0,.14);
+}
+.cfg-style:has(input:checked) .cfg-style__thumb { border-color: var(--cfg-ink); box-shadow: 0 0 0 2px var(--cfg-ink); }
+.cfg-style:has(input:checked) .cfg-style__thumb::after {
+  background-color: var(--cfg-ink);
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 8.4 3.2 3.2L13 5'/%3E%3C/svg%3E");
+}
+.cfg-style:has(input:focus-visible) .cfg-style__thumb { outline: 2px solid #0a84ff; outline-offset: 2px; }
+.cfg-style__name { display: block; margin-top: 8px; font-size: 13px; font-weight: 600; text-align: center; letter-spacing: -.02em; }
+
+/* ------------------------------------------------------------
+   견적 요약
+   ------------------------------------------------------------ */
+.cfg-summary { margin-top: 90px; padding: 70px 0 60px; border-top: 1px solid var(--cfg-line-soft); text-align: center; }
+.cfg-summary__title { font-size: clamp(28px, 3.4vw, 44px); font-weight: 800; letter-spacing: -.03em; line-height: 1.2; }
+.cfg-summary__total { margin-top: 22px; font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+.cfg-summary__total em { display: block; margin-top: 6px; font-style: normal; font-size: 13.5px; font-weight: 400; color: var(--cfg-sub); }
+.cfg-summary__grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;
+  max-width: 900px; margin: 42px auto 0; text-align: left;
+}
+.cfg-receipt { padding: 26px 28px; background: var(--cfg-bg-soft); border-radius: 18px; }
+.cfg-receipt h3 { font-size: 14px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 14px; }
+.cfg-receipt dl { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; font-size: 13.5px; }
+.cfg-receipt dt { color: var(--cfg-sub); white-space: nowrap; }
+.cfg-receipt dd { text-align: right; font-weight: 600; word-break: keep-all; }
+.cfg-receipt .is-total { border-top: 1px solid var(--cfg-line); padding-top: 12px; margin-top: 4px; }
+.cfg-receipt dt.is-total { color: var(--cfg-ink); font-weight: 700; }
+.cfg-receipt dd.is-total { font-size: 16px; font-weight: 800; }
+.cfg-summary__cta { display: flex; justify-content: center; gap: 12px; margin-top: 40px; flex-wrap: wrap; }
+.cfg-summary__foot { margin-top: 22px; font-size: 12.5px; line-height: 1.7; color: var(--cfg-sub); }
+
+/* ------------------------------------------------------------
+   FAQ
+   ------------------------------------------------------------ */
+.cfg-faq { margin-top: 70px; }
+.cfg-acc { max-width: 860px; margin: 34px auto 0; border-top: 1px solid var(--cfg-line-soft); }
+.cfg-acc details { border-bottom: 1px solid var(--cfg-line-soft); }
+.cfg-acc summary {
+  position: relative; list-style: none; cursor: pointer;
+  padding: 22px 44px 22px 0;
+  font-size: 16px; font-weight: 600; letter-spacing: -.02em;
+}
+.cfg-acc summary::-webkit-details-marker { display: none; }
+.cfg-acc summary::after {
+  content: ""; position: absolute; right: 6px; top: 50%; width: 18px; height: 18px; margin-top: -9px;
+  background: no-repeat center/18px
+    url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23101010' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M10 4v12M4 10h12'/%3E%3C/svg%3E");
+  transition: transform .2s var(--ease-out);
+}
+.cfg-acc details[open] summary::after {
+  transform: rotate(135deg);
+}
+.cfg-acc p { padding: 0 40px 24px 0; font-size: 14.5px; line-height: 1.75; color: var(--cfg-sub); }
+
+/* ------------------------------------------------------------
+   모바일 하단 고정 견적 바
+   ------------------------------------------------------------ */
+.cfg-mobilebar {
+  display: none;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 240;
+  align-items: center; justify-content: space-between; gap: 14px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.96); backdrop-filter: blur(16px);
+  border-top: 1px solid var(--cfg-line-soft);
+}
+.cfg-mobilebar__price span { display: block; font-size: 11.5px; color: var(--cfg-sub); }
+.cfg-mobilebar__price strong { font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
+
+/* ------------------------------------------------------------
+   반응형
+   ------------------------------------------------------------ */
+@media (max-width: 1200px) {
+  .cfg-layout { grid-template-columns: minmax(0, 1fr) 420px; gap: 40px; }
+}
+@media (max-width: 1000px) {
+  .cfg-layout { grid-template-columns: 1fr; gap: 12px; }
+  .cfg-visual__sticky { position: static; }
+  .cfg-stage { min-height: 340px; padding: 28px; }
+  .cfg-visual__meta { margin-bottom: 30px; }
+  .cfg-hero { flex-direction: column; align-items: flex-start; padding: 40px 0 30px; }
+  .cfg-hero__pills { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+  .cfg-summary__grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  /* 모바일은 하단 고정 견적 바가 같은 역할을 하므로 상단 바를 숨긴다 */
+  .cfg-localnav { display: none; }
+  .cfg-localnav__right .cfg-chip-mini { display: none; }
+  .cfg-hero { padding-top: 24px; }
+  .cfg-sec { padding: 34px 0; }
+  .cfg-h2 { font-size: 21px; }
+  .cfg-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cfg-styles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cfg-help { flex-direction: column; align-items: flex-start; }
+  .cfg-mobilebar { display: flex; bottom: 62px; }
+  .cfg-main { padding-bottom: 150px; }
+  .cfg-summary { margin-top: 50px; padding: 46px 0 40px; }
+  .cfg-visual__meta { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .cfg-card { padding: 15px 16px; }
+  .cfg-card__price { font-size: 13px; }
+  .cfg-summary__cta .cfg-btn { width: 100%; }
+}

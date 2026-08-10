@@ -43,6 +43,10 @@
   var VIEWS = ['펼친 면 (앞)', '펼친 면 (뒤)', '접었을 때'];
   var view = 0;
 
+  var STYLE_MAX = 4;   // 스타일 최대 선택 개수
+  var STYLE_MIN = 2;   // 스타일 최소 선택 개수
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
   /* ----------------------------------------------------------
      단계 정의 — lfleat-list.docx 01~10
      done() : 이 단계가 채워졌는지
@@ -57,7 +61,8 @@
     { id: 'sec-coat',   title: '코팅',      done: function (s) { return !!s.coat; } },
     { id: 'sec-finish', title: '후가공',    done: function (s) { return s.finish.length > 0; } },
     { id: 'sec-style',  title: '스타일',    done: function (s) { return s.styles.length >= 2; } },
-    { id: 'sec-file',   title: '작업 파일', done: function (s) { return !!s.srcfile; } },
+    // 작업 파일을 '제공' 으로 고르면 받을 이메일까지 입력해야 넘어간다
+    { id: 'sec-file',   title: '작업 파일', done: function (s) { return !!s.srcfile && (s.srcfile !== '제공' || s.emailValid); } },
     { id: 'sec-due',    title: '납기',      done: function (s) { return !!s.due; } }
   ];
 
@@ -169,6 +174,8 @@
       styles: checkedAll('style').map(function (el) { return el.value; }),
       srcfile: val(srcfile),
       srcfilePrice: num(srcfile && srcfile.dataset.price, 0),
+      email: (document.getElementById('fileEmail').value || '').trim(),
+      emailValid: EMAIL_RE.test((document.getElementById('fileEmail').value || '').trim()),
       due: val(due),
       dueDays: num(due && due.dataset.days, 10),
       dueRate: num(due && due.dataset.rate, 0)
@@ -399,8 +406,11 @@
       ['제본 방식', c.bindApplies ? (s.bind || dash) : (s.bind ? s.bind + ' (접지 마감 · 미적용)' : '접지 마감 · 해당 없음')],
       ['코팅', s.coat ? s.coat + ' · ' + s.coatSide : dash],
       ['후가공', s.finish.length ? s.finish.map(function (f) { return f.name; }).join(', ') : dash],
-      ['스타일', s.styles.length ? s.styles.length + '개 선택 (' + s.styles.join(', ') + ')' : dash],
-      ['작업 파일', s.srcfile || dash],
+      ['스타일', s.styles.length
+        ? s.styles.length + '개 선택 · ' + s.styles.slice(0, 2).join(', ') +
+          (s.styles.length > 2 ? ' 외 ' + (s.styles.length - 2) + '건' : '')
+        : dash],
+      ['작업 파일', s.srcfile ? (s.srcfile === '제공' ? '제공' + (s.email ? ' · ' + s.email : '') : s.srcfile) : dash],
       ['납기', s.due
         ? s.due + ' · ' + s.dueDays + ' 영업일 · ' + fmtDate(addBusinessDays(new Date(), s.dueDays)) + ' 납품 예정'
         : dash]
@@ -452,10 +462,18 @@
       card.classList.toggle('is-muted', !!s.formatKey && !c.bindApplies);
     });
 
-    // 스타일 : 최소 2개
+    // 스타일 : 2~4개
     var n = s.styles.length;
     document.getElementById('styleCount').textContent = n + '개 선택';
-    document.getElementById('styleAlert').hidden = n >= 2;
+    document.getElementById('styleAlert').hidden = n >= STYLE_MIN;
+
+    // 작업 파일 : '제공' 이면 받을 이메일 확인
+    var emailEl = document.getElementById('fileEmail');
+    var needEmail = s.srcfile === '제공';
+    var emailBad = needEmail && s.email.length > 0 && !s.emailValid;
+    emailEl.classList.toggle('is-invalid', emailBad);
+    document.getElementById('fileAlert').hidden = !emailBad;
+    emailEl.required = needEmail;
 
     // 납기 : 카드마다 예상 납품일 표기
     Array.prototype.forEach.call(form.querySelectorAll('input[name="due"]'), function (el) {
@@ -502,6 +520,12 @@
      이벤트
      ---------------------------------------------------------- */
   form.addEventListener('change', function (e) {
+    // 스타일 : 최대 4개
+    if (e.target.name === 'style' && e.target.checked && checkedAll('style').length > STYLE_MAX) {
+      e.target.checked = false;
+      flashStyleMax();
+      return;
+    }
     // 후가공 '없음' 은 배타 선택
     if (e.target.name === 'finish') {
       var boxes = Array.prototype.slice.call(form.querySelectorAll('input[name="finish"]'));
@@ -524,8 +548,17 @@
 
   // 직접 입력은 타이핑 중 스크롤이 튀지 않도록 이동시키지 않는다
   form.addEventListener('input', function (e) {
-    if (['panelCount', 'customSize', 'qtyCustom'].indexOf(e.target.id) > -1) update();
+    if (['panelCount', 'customSize', 'qtyCustom', 'fileEmail'].indexOf(e.target.id) > -1) update();
   });
+
+  // 스타일 최대 개수 안내 (잠깐 보여주고 감춘다)
+  var styleMaxTimer = null;
+  function flashStyleMax() {
+    var el = document.getElementById('styleMaxAlert');
+    el.hidden = false;
+    clearTimeout(styleMaxTimer);
+    styleMaxTimer = setTimeout(function () { el.hidden = true; }, 2600);
+  }
 
   document.getElementById('galPrev').addEventListener('click', function () {
     view = (view + VIEWS.length - 1) % VIEWS.length; update();
@@ -566,12 +599,126 @@
   });
 
   /* ----------------------------------------------------------
-     상단 바 : 스크롤하면 그림자
+     스타일 더보기 팝업
+     - 실서버에서는 /portfolio 게시물 데이터를 그대로 내려주면 된다
+     - 지금은 assets/js/portfolio-data.js 의 축약 목록을 사용
      ---------------------------------------------------------- */
-  var nav = document.getElementById('cfgLocalnav');
-  addEventListener('scroll', function () {
-    nav.classList.toggle('is-scrolled', scrollY > 40);
-  }, { passive: true });
+  (function styleModal() {
+    var modal = document.getElementById('styleModal');
+    var grid = document.getElementById('modalGrid');
+    var filters = document.getElementById('modalFilters');
+    var countEl = document.getElementById('modalCount');
+    var notice = document.getElementById('modalNotice');
+    var noticeBase = notice.textContent;
+    var items = window.LEAFLET_PORTFOLIO || [];
+    var picked = [];        // 팝업 안에서의 선택 (제목 기준)
+    var filter = '전체';
+    var lastFocus = null;
+    var noticeTimer = null;
+
+    var cats = ['전체'].concat(items.map(function (it) { return it.category; })
+      .filter(function (c, i, a) { return c && a.indexOf(c) === i; }));
+
+    function styleInputs() {
+      return Array.prototype.slice.call(form.querySelectorAll('input[name="style"]'));
+    }
+    function currentPicked() {
+      return styleInputs().filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
+    }
+    function say(msg, warn) {
+      notice.textContent = msg;
+      notice.classList.toggle('is-warn', !!warn);
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(function () {
+        notice.textContent = noticeBase;
+        notice.classList.remove('is-warn');
+      }, 2600);
+    }
+
+    function renderFilters() {
+      filters.innerHTML = cats.map(function (c) {
+        return '<button type="button" class="cfg-mfilter' + (c === filter ? ' is-on' : '') + '" data-cat="' + c + '">' + c + '</button>';
+      }).join('');
+    }
+
+    function renderGrid() {
+      var list = items.filter(function (it) { return filter === '전체' || it.category === filter; });
+      grid.innerHTML = list.map(function (it) {
+        var on = picked.indexOf(it.title) > -1;
+        return '<label class="cfg-mitem">' +
+          '<input type="checkbox" value="' + it.title + '"' + (on ? ' checked' : '') + '>' +
+          '<span class="cfg-mitem__thumb"><img src="' + it.thumb + '" alt="' + it.title + '" loading="lazy"></span>' +
+          '<span class="cfg-mitem__name">' + it.title + '</span>' +
+          '<span class="cfg-mitem__cat">' + it.category + ' · ' + (it.industry || '') + '</span>' +
+          '</label>';
+      }).join('');
+      countEl.textContent = picked.length;
+    }
+
+    function open() {
+      picked = currentPicked();
+      filter = '전체';
+      renderFilters();
+      renderGrid();
+      lastFocus = document.activeElement;
+      modal.hidden = false;
+      document.body.classList.add('cfg-modal-open');
+      modal.querySelector('.cfg-modal__close').focus();
+    }
+    function close() {
+      modal.hidden = true;
+      document.body.classList.remove('cfg-modal-open');
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+
+    // 선택한 항목을 스타일 섹션에 반영한다 (없는 항목은 카드로 추가)
+    function apply() {
+      var box = document.querySelector('.cfg-styles');
+      styleInputs().forEach(function (b) { b.checked = picked.indexOf(b.value) > -1; });
+      picked.forEach(function (title) {
+        if (form.querySelector('input[name="style"][value="' + title + '"]')) return;
+        var it = items.filter(function (x) { return x.title === title; })[0];
+        if (!it) return;
+        var label = document.createElement('label');
+        label.className = 'cfg-style';
+        label.innerHTML = '<input type="checkbox" name="style" value="' + it.title + '" checked>' +
+          '<span class="cfg-style__thumb"><img src="' + it.thumb + '" alt="' + it.title + '" loading="lazy"></span>' +
+          '<span class="cfg-style__name">' + it.title + '</span>';
+        box.appendChild(label);
+      });
+      close();
+      update({ autoScroll: true });
+    }
+
+    document.getElementById('styleMore').addEventListener('click', open);
+    document.getElementById('modalApply').addEventListener('click', apply);
+
+    modal.addEventListener('click', function (e) {
+      if (e.target.closest('[data-close]')) { close(); return; }
+      var f = e.target.closest('.cfg-mfilter');
+      if (f) { filter = f.dataset.cat; renderFilters(); renderGrid(); }
+    });
+
+    grid.addEventListener('change', function (e) {
+      if (e.target.type !== 'checkbox') return;
+      var title = e.target.value;
+      if (e.target.checked) {
+        if (picked.length >= STYLE_MAX) {
+          e.target.checked = false;
+          say('스타일은 최대 ' + STYLE_MAX + '개까지 선택할 수 있습니다.', true);
+          return;
+        }
+        picked.push(title);
+      } else {
+        picked = picked.filter(function (t) { return t !== title; });
+      }
+      countEl.textContent = picked.length;
+    });
+
+    addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !modal.hidden) close();
+    });
+  })();
 
   /* ----------------------------------------------------------
      쿼리스트링으로 들어온 구성 복원

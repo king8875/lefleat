@@ -40,21 +40,6 @@
   </div>
 </header>
 
-<!-- ===== 상단 고정 바 (Apple localnav) ===== -->
-<div class="cfg-localnav" id="cfgLocalnav">
-  <div class="cfg-localnav__inner">
-    <div class="cfg-localnav__left">
-      <strong>리플렛 제작</strong>
-      <span class="cfg-localnav__price" id="navPrice">구성을 선택해 주세요</span>
-    </div>
-    <div class="cfg-localnav__right">
-      <span class="cfg-chip-mini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="17.5" r="1.6"/><circle cx="17.5" cy="17.5" r="1.6"/></svg>전국 무료 배송</span>
-      <span class="cfg-chip-mini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4h14v16l-7-3.5L5 20z"/></svg>시안 2종 무료</span>
-      <a href="#cfgSummary" class="cfg-btn cfg-btn--sm">견적 담기</a>
-    </div>
-  </div>
-</div>
-
 <main id="site-main" class="cfg-main">
   <div class="cfg-container">
 
@@ -85,6 +70,20 @@
             <button type="button" class="cfg-gnav" id="galPrev" aria-label="이전 이미지"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 4-5 6 5 6"/></svg></button>
             <div class="cfg-dots" id="galDots" role="tablist" aria-label="미리보기 전환"></div>
             <button type="button" class="cfg-gnav" id="galNext" aria-label="다음 이미지"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m8 4 5 6-5 6"/></svg></button>
+          </div>
+          <!-- 견적 요약 바 (미리보기 아래, 선택 내역 위) -->
+          <div class="cfg-localnav" id="cfgLocalnav">
+            <div class="cfg-localnav__inner">
+              <div class="cfg-localnav__left">
+                <strong>리플렛 제작</strong>
+                <span class="cfg-localnav__price" id="navPrice">구성을 선택해 주세요</span>
+              </div>
+              <div class="cfg-localnav__right">
+                <span class="cfg-chip-mini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="17.5" r="1.6"/><circle cx="17.5" cy="17.5" r="1.6"/></svg>전국 무료 배송</span>
+                <span class="cfg-chip-mini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4h14v16l-7-3.5L5 20z"/></svg>시안 2종 무료</span>
+                <a href="#cfgSummary" class="cfg-btn cfg-btn--sm">견적 담기</a>
+              </div>
+            </div>
           </div>
           <ul class="cfg-visual__meta" id="visualMeta"></ul>
         </div>
@@ -219,18 +218,23 @@
 
         <!-- 08 스타일 -->
         <section class="cfg-sec" id="sec-style" data-step="08">
-          <h2 class="cfg-h2"><span>스타일.</span> 원하는 방향을 2개 이상 골라주세요.</h2>
-          <p class="cfg-sec__note">최소 2개 선택 · 고른 포트폴리오를 기준으로 시안 방향을 잡습니다. <b id="styleCount">0개 선택</b></p>
+          <h2 class="cfg-h2"><span>스타일.</span> 원하는 방향을 2~4개 골라주세요.</h2>
+          <p class="cfg-sec__note">2개 이상 · 최대 4개 · 고른 포트폴리오를 기준으로 시안 방향을 잡습니다. <b id="styleCount">0개 선택</b></p>
           <div class="cfg-styles" role="group" aria-label="스타일 포트폴리오">
-            <label class="cfg-style"><input type="checkbox" name="style" value="오사카한국교육원"><span class="cfg-style__thumb"><img src="assets/img/style/leaflet_leaflet-0074-01-400.webp" alt="오사카한국교육원 리플렛" loading="lazy"></span><span class="cfg-style__name">단정한 기관형</span></label>
-            <label class="cfg-style"><input type="checkbox" name="style" value="한국수산자원공단"><span class="cfg-style__thumb"><img src="assets/img/style/dw-w35-400.webp" alt="한국수산자원공단 리플렛" loading="lazy"></span><span class="cfg-style__name">정보 정리형</span></label>
-            <label class="cfg-style"><input type="checkbox" name="style" value="강남구보건소"><span class="cfg-style__thumb"><img src="assets/img/style/leaflet_leaflet-0075-01-400.webp" alt="강남구보건소 리플렛" loading="lazy"></span><span class="cfg-style__name">부드러운 일러스트</span></label>
-            <label class="cfg-style"><input type="checkbox" name="style" value="서대문구청"><span class="cfg-style__thumb"><img src="assets/img/style/leaflet_leaflet-0062-01-400.webp" alt="서대문구청 돌봄SOS 리플렛" loading="lazy"></span><span class="cfg-style__name">공공 안내형</span></label>
-            <label class="cfg-style"><input type="checkbox" name="style" value="한국사회복지협의회"><span class="cfg-style__thumb"><img src="assets/img/style/leaflet_leaflet-0072-01-400.webp" alt="한국사회복지협의회 리플렛" loading="lazy"></span><span class="cfg-style__name">따뜻한 캠페인</span></label>
-            <label class="cfg-style"><input type="checkbox" name="style" value="문화유산국민신탁"><span class="cfg-style__thumb"><img src="assets/img/style/leaflet_leaflet-0060-01-400.webp" alt="문화유산국민신탁 보성여관 리플렛" loading="lazy"></span><span class="cfg-style__name">문화·관광형</span></label>
-            <label class="cfg-style"><input type="checkbox" name="style" value="국립나주병원"><span class="cfg-style__thumb"><img src="assets/img/style/leaflet_leaflet-0068-01-400.webp" alt="국립나주병원 리플렛" loading="lazy"></span><span class="cfg-style__name">의료·병원형</span></label>
+            <label class="cfg-style"><input type="checkbox" name="style" value="오사카한국교육원 리플렛"><span class="cfg-style__thumb"><img src="assets/img/style/leaflet_leaflet-0074-01-400.webp" alt="오사카한국교육원 리플렛" loading="lazy"></span><span class="cfg-style__name">단정한 기관형</span></label>
+            <label class="cfg-style"><input type="checkbox" name="style" value="한국수산자원공단 어구부표보증금제도 리플렛"><span class="cfg-style__thumb"><img src="assets/img/style/dw-w35-400.webp" alt="한국수산자원공단 리플렛" loading="lazy"></span><span class="cfg-style__name">정보 정리형</span></label>
+            <label class="cfg-style"><input type="checkbox" name="style" value="강남구보건소 생애초기건강관리사업 리플렛"><span class="cfg-style__thumb"><img src="assets/img/style/leaflet_leaflet-0075-01-400.webp" alt="강남구보건소 리플렛" loading="lazy"></span><span class="cfg-style__name">부드러운 일러스트</span></label>
+            <label class="cfg-style"><input type="checkbox" name="style" value="서대문구청 돌봄SOS 리플렛"><span class="cfg-style__thumb"><img src="assets/img/style/leaflet_leaflet-0062-01-400.webp" alt="서대문구청 돌봄SOS 리플렛" loading="lazy"></span><span class="cfg-style__name">공공 안내형</span></label>
+            <label class="cfg-style"><input type="checkbox" name="style" value="한국사회복지협의회 돌아오는돌봄 리플렛"><span class="cfg-style__thumb"><img src="assets/img/style/leaflet_leaflet-0072-01-400.webp" alt="한국사회복지협의회 리플렛" loading="lazy"></span><span class="cfg-style__name">따뜻한 캠페인</span></label>
+            <label class="cfg-style"><input type="checkbox" name="style" value="문화유산국민신탁 보성여관 리플렛"><span class="cfg-style__thumb"><img src="assets/img/style/leaflet_leaflet-0060-01-400.webp" alt="문화유산국민신탁 보성여관 리플렛" loading="lazy"></span><span class="cfg-style__name">문화·관광형</span></label>
+            <label class="cfg-style"><input type="checkbox" name="style" value="국립나주병원 리플렛"><span class="cfg-style__thumb"><img src="assets/img/style/leaflet_leaflet-0068-01-400.webp" alt="국립나주병원 리플렛" loading="lazy"></span><span class="cfg-style__name">의료·병원형</span></label>
+          </div>
+          <div class="cfg-styles__more">
+            <button type="button" class="cfg-btn cfg-btn--ghost" id="styleMore">포트폴리오 더보기</button>
+            <span class="cfg-styles__hint">전체 포트폴리오에서 고를 수 있습니다. (최대 4개)</span>
           </div>
           <p class="cfg-alert" id="styleAlert" hidden>시안 방향을 잡기 위해 스타일을 2개 이상 선택해 주세요.</p>
+          <p class="cfg-alert" id="styleMaxAlert" hidden>스타일은 최대 4개까지 선택할 수 있습니다.</p>
         </section>
 
         <!-- 09 작업 파일 제공 -->
@@ -241,6 +245,12 @@
             <label class="cfg-card"><input type="radio" name="srcfile" value="제공 안 함" data-price="0"><span class="cfg-card__body"><span class="cfg-card__title">제공 안 함</span><span class="cfg-card__desc">인쇄용 PDF와 최종 시안 이미지만 전달</span></span><span class="cfg-card__price">포함</span></label>
             <label class="cfg-card"><input type="radio" name="srcfile" value="제공" data-price="200000"><span class="cfg-card__body"><span class="cfg-card__title">제공</span><span class="cfg-card__desc">추후 내부에서 직접 수정이 가능합니다</span></span><span class="cfg-card__price">+₩200,000</span></label>
           </div>
+          <div class="cfg-emailrow" id="fileEmailRow">
+            <label for="fileEmail">작업 파일을 받을 이메일</label>
+            <input type="email" id="fileEmail" name="fileEmail" placeholder="example@company.co.kr" autocomplete="email" inputmode="email" spellcheck="false">
+            <span class="cfg-emailrow__help">납품 완료 후 이 주소로 원본 파일(ai/indd)과 사용 서체 목록을 보내드립니다.</span>
+          </div>
+          <p class="cfg-alert" id="fileAlert" hidden>작업 파일을 받을 이메일 주소를 정확히 입력해 주세요.</p>
         </section>
 
         <!-- 10 납기 -->
@@ -302,6 +312,32 @@
   <a href="#cfgSummary" class="cfg-btn">견적 확인</a>
 </div>
 
+<!-- ===== 스타일 선택 팝업 (실서버 /portfolio 게시물 · 시안용 축약) ===== -->
+<div class="cfg-modal" id="styleModal" hidden>
+  <div class="cfg-modal__backdrop" data-close></div>
+  <div class="cfg-modal__panel" role="dialog" aria-modal="true" aria-labelledby="styleModalTitle">
+    <header class="cfg-modal__head">
+      <div class="cfg-modal__title">
+        <h2 id="styleModalTitle">포트폴리오에서 스타일 고르기</h2>
+        <p>원하는 방향의 리플렛을 선택하세요. 최대 4개까지 고를 수 있습니다.</p>
+      </div>
+      <p class="cfg-modal__count"><b id="modalCount">0</b> / 4</p>
+      <button type="button" class="cfg-modal__close" data-close aria-label="닫기"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
+    </header>
+    <div class="cfg-modal__filters" id="modalFilters" role="group" aria-label="판형 분류"></div>
+    <div class="cfg-modal__body">
+      <div class="cfg-modal__grid" id="modalGrid"></div>
+    </div>
+    <footer class="cfg-modal__foot">
+      <p class="cfg-modal__notice" id="modalNotice">실서버 연동 전 시안이라 최근 포트폴리오 20건만 표시합니다.</p>
+      <div class="cfg-modal__actions">
+        <button type="button" class="cfg-btn cfg-btn--ghost" data-close>취소</button>
+        <button type="button" class="cfg-btn" id="modalApply">선택 적용</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
 <!-- ===== footer : leaflet.ai.kr 공통 푸터 ===== -->
 <footer class="site-footer" id="site-footer">
   <div class="footer-inner">
@@ -360,6 +396,7 @@
 </nav>
 
 <script src="assets/js/mouse-orb.js" defer></script>
+<script src="assets/js/portfolio-data.js" defer></script>
 <script src="assets/js/config.js" defer></script>
 <script>(function(){var b=document.getElementById('scrollTop'),h=document.getElementById('siteHeader'),ft=document.getElementById('footer-company-toggle'),fp=document.getElementById('footer-company-panel');function onScroll(){var on=scrollY>600;b.classList.toggle('show',on);h.classList.toggle('is-sticky',scrollY>8)}addEventListener('scroll',onScroll,{passive:true});onScroll();b.onclick=function(){scrollTo({top:0,behavior:'smooth'})};if(ft&&fp)ft.onclick=function(){var open=fp.classList.toggle('is-open');ft.setAttribute('aria-expanded',open?'true':'false')}})();</script>
 </body>

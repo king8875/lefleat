@@ -419,30 +419,10 @@
       return '<dt>' + m[0] + '</dt><dd>' + m[1] + '</dd>';
     }).join('');
 
-    var rows = [];
-    if (c.design) rows.push(['디자인 (' + s.formatLabel + ')', won(c.design)]);
-    if (c.printing) rows.push(['인쇄 (' + s.paper + ' · ' + s.qty.toLocaleString('ko-KR') + '부)', won(c.printing)]);
-    if (c.binding) rows.push(['제본 (' + s.bind + ')', won(c.binding)]);
-    if (c.coating) rows.push(['코팅 (' + s.coat + ' · ' + s.coatSide + ')', won(c.coating)]);
-    if (c.finishing) rows.push(['후가공 (' + s.finish.map(function (f) { return f.name; }).join(', ') + ')', won(c.finishing)]);
-    if (c.srcfile) rows.push(['작업 파일 제공', won(c.srcfile)]);
-    if (c.rush) rows.push([s.due, won(c.rush)]);
-    if (!rows.length) rows.push(['선택한 항목', '없음']);
-    rows.push(['공급가액', won(c.net)]);
-    rows.push(['부가세 (10%)', won(c.vat)]);
-
-    var html = rows.map(function (m) {
-      return '<dt>' + m[0] + '</dt><dd>' + m[1] + '</dd>';
-    }).join('');
-    html += '<dt class="is-total">합계 (VAT 포함)</dt><dd class="is-total">' + won(c.total) + '</dd>';
-    document.getElementById('sumPrice').innerHTML = html;
-
     document.getElementById('sumTotal').textContent = won(c.total);
     document.getElementById('sumTotalNote').textContent = p.complete ? 'VAT 포함' : 'VAT 포함 · 구성 중';
     document.getElementById('mbTotal').textContent = won(c.total);
-    document.getElementById('navPrice').textContent = p.complete
-      ? won(c.total) + ' (VAT 포함)'
-      : (c.total ? won(c.total) + ' (구성 중)' : '구성을 선택해 주세요');
+    document.getElementById('navPrice').textContent = c.total ? won(c.total) : '구성을 선택해 주세요';
 
     var remain = document.getElementById('sumRemain');
     remain.hidden = p.complete;
@@ -606,18 +586,13 @@
   (function styleModal() {
     var modal = document.getElementById('styleModal');
     var grid = document.getElementById('modalGrid');
-    var filters = document.getElementById('modalFilters');
     var countEl = document.getElementById('modalCount');
     var notice = document.getElementById('modalNotice');
     var noticeBase = notice.textContent;
     var items = window.LEAFLET_PORTFOLIO || [];
     var picked = [];        // 팝업 안에서의 선택 (제목 기준)
-    var filter = '전체';
     var lastFocus = null;
     var noticeTimer = null;
-
-    var cats = ['전체'].concat(items.map(function (it) { return it.category; })
-      .filter(function (c, i, a) { return c && a.indexOf(c) === i; }));
 
     function styleInputs() {
       return Array.prototype.slice.call(form.querySelectorAll('input[name="style"]'));
@@ -635,19 +610,16 @@
       }, 2600);
     }
 
-    function renderFilters() {
-      filters.innerHTML = cats.map(function (c) {
-        return '<button type="button" class="cfg-mfilter' + (c === filter ? ' is-on' : '') + '" data-cat="' + c + '">' + c + '</button>';
-      }).join('');
-    }
-
+    // 원본 비율(w/h)을 미리 넣어 이미지 로드 전에도 메이슨리 높이가 흔들리지 않게 한다
     function renderGrid() {
-      var list = items.filter(function (it) { return filter === '전체' || it.category === filter; });
-      grid.innerHTML = list.map(function (it) {
+      grid.innerHTML = items.map(function (it) {
         var on = picked.indexOf(it.title) > -1;
+        var ratio = (it.w && it.h) ? it.w + ' / ' + it.h : '4 / 3';
         return '<label class="cfg-mitem">' +
           '<input type="checkbox" value="' + it.title + '"' + (on ? ' checked' : '') + '>' +
-          '<span class="cfg-mitem__thumb"><img src="' + it.thumb + '" alt="' + it.title + '" loading="lazy"></span>' +
+          '<span class="cfg-mitem__thumb" style="aspect-ratio:' + ratio + '">' +
+          '<img src="' + it.thumb + '" alt="' + it.title + '"' +
+          (it.w && it.h ? ' width="' + it.w + '" height="' + it.h + '"' : '') + ' loading="lazy"></span>' +
           '<span class="cfg-mitem__name">' + it.title + '</span>' +
           '<span class="cfg-mitem__cat">' + it.category + ' · ' + (it.industry || '') + '</span>' +
           '</label>';
@@ -657,8 +629,6 @@
 
     function open() {
       picked = currentPicked();
-      filter = '전체';
-      renderFilters();
       renderGrid();
       lastFocus = document.activeElement;
       modal.hidden = false;
@@ -694,9 +664,7 @@
     document.getElementById('modalApply').addEventListener('click', apply);
 
     modal.addEventListener('click', function (e) {
-      if (e.target.closest('[data-close]')) { close(); return; }
-      var f = e.target.closest('.cfg-mfilter');
-      if (f) { filter = f.dataset.cat; renderFilters(); renderGrid(); }
+      if (e.target.closest('[data-close]')) close();
     });
 
     grid.addEventListener('change', function (e) {

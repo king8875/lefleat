@@ -1,6 +1,8 @@
 /* ============================================================
    리플렛마스터 — 견적 구성 페이지 스크립트 (시안)
    - lfleat-list.docx 의 01~10 입력 요소를 상태로 관리
+   - 앞 단계를 고르지 않으면 다음 단계는 잠긴다 (단계형 진행)
+   - 단계를 고르면 다음 단계로 부드럽게 스크롤
    - 선택이 바뀌면 좌측 미리보기 / 상단 바 / 요약 금액을 즉시 갱신
    - 단가는 시안용 예시값이며 PRICE 상수만 고치면 전체가 따라 움직인다
    ============================================================ */
@@ -31,15 +33,52 @@
 
   // 판형 정의 : 펼친 사이즈(mm) 와 접었을 때 단수
   var FORMAT = {
-    'flat-a5': { label: '단면 낱장 A5', panels: 1, spread: [148, 210], folded: [148, 210], sizeText: '148×210mm' },
-    'fold2':   { label: '2단 접지 A4', panels: 2, spread: [297, 210], folded: [148.5, 210], sizeText: '펼침 297×210mm' },
-    'fold3':   { label: '3단 접지 A4', panels: 3, spread: [297, 210], folded: [99, 210], sizeText: '펼침 297×210mm' },
-    'fold4':   { label: '4단 접지',    panels: 4, spread: [400, 210], folded: [100, 210], sizeText: '펼침 400×210mm' },
-    'fold5':   { label: '5단 이상',    panels: 5, spread: [500, 210], folded: [100, 210], sizeText: '펼침 500×210mm' }
+    'flat-a5': { label: '단면 낱장 A5', panels: 1, panelW: 148, sizeText: '148×210mm' },
+    'fold2':   { label: '2단 접지 A4', panels: 2, panelW: 148.5, sizeText: '펼침 297×210mm' },
+    'fold3':   { label: '3단 접지 A4', panels: 3, panelW: 99, sizeText: '펼침 297×210mm' },
+    'fold4':   { label: '4단 접지',    panels: 4, panelW: 100, sizeText: '펼침 400×210mm' },
+    'fold5':   { label: '5단 이상',    panels: 5, panelW: 100, sizeText: '펼침 500×210mm' }
   };
 
   var VIEWS = ['펼친 면 (앞)', '펼친 면 (뒤)', '접었을 때'];
   var view = 0;
+
+  /* ----------------------------------------------------------
+     단계 정의 — lfleat-list.docx 01~10
+     done() : 이 단계가 채워졌는지
+     ---------------------------------------------------------- */
+  var STEPS = [
+    { id: 'sec-org',    title: '진행 기관', done: function (s) { return !!s.org; } },
+    { id: 'sec-format', title: '판형',      done: function (s) { return !!s.formatKey; } },
+    { id: 'sec-qty',    title: '수량',      done: function (s) { return s.qty >= 10; } },
+    { id: 'sec-paper',  title: '용지',      done: function (s) { return !!s.paper; } },
+    // 접지 마감(4단 이하)은 제본 공정이 없으므로 건너뛴다
+    { id: 'sec-bind',   title: '제본 방식', done: function (s, c) { return !c.bindApplies || !!s.bind; } },
+    { id: 'sec-coat',   title: '코팅',      done: function (s) { return !!s.coat; } },
+    { id: 'sec-finish', title: '후가공',    done: function (s) { return s.finish.length > 0; } },
+    { id: 'sec-style',  title: '스타일',    done: function (s) { return s.styles.length >= 2; } },
+    { id: 'sec-file',   title: '작업 파일', done: function (s) { return !!s.srcfile; } },
+    { id: 'sec-due',    title: '납기',      done: function (s) { return !!s.due; } }
+  ];
+
+  var LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">' +
+    '<rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>';
+
+  // 각 단계에 잠금 안내 문구를 심어 둔다
+  STEPS.forEach(function (step) {
+    var sec = document.getElementById(step.id);
+    if (!sec) return;
+    step.el = sec;
+    var lock = document.createElement('p');
+    lock.className = 'cfg-sec__lock';
+    lock.innerHTML = LOCK_SVG + '<span>이전 단계를 먼저 선택해 주세요.</span>';
+    var note = sec.querySelector('.cfg-sec__note');
+    if (note) note.insertAdjacentElement('afterend', lock);
+    else sec.appendChild(lock);
+  });
+
+  var frontier = 0;          // 지금 골라야 하는 단계
+  var initialized = false;   // 첫 렌더에서는 스크롤하지 않는다
 
   /* ----------------------------------------------------------
      유틸
@@ -50,6 +89,7 @@
     return Array.prototype.slice.call(form.querySelectorAll('input[name="' + name + '"]:checked'));
   }
   function num(v, fallback) { var n = parseFloat(v); return isFinite(n) ? n : fallback; }
+  function val(el) { return el ? el.value : ''; }
 
   // 영업일 기준 납품일 (주말 제외)
   function addBusinessDays(from, days) {
@@ -67,7 +107,7 @@
   }
 
   function unitForQty(qty) {
-    var unit = PRICE.qtyTiers[0].unit;
+    var unit = 0;
     for (var i = 0; i < PRICE.qtyTiers.length; i++) {
       if (qty >= PRICE.qtyTiers[i].min) unit = PRICE.qtyTiers[i].unit;
     }
@@ -75,14 +115,14 @@
   }
 
   /* ----------------------------------------------------------
-     현재 상태 읽기
+     현재 상태 읽기 — 아직 고르지 않은 항목은 비워 둔다
      ---------------------------------------------------------- */
   function readState() {
     var fEl = checked('format');
-    var key = fEl ? fEl.value : 'fold3';
+    var key = val(fEl);
     var fmt = FORMAT[key];
-    var panels = fmt.panels;
-    var sizeText = fmt.sizeText;
+    var panels = fmt ? fmt.panels : 0;
+    var sizeText = fmt ? fmt.sizeText : '';
 
     if (key === 'fold5') {
       panels = Math.min(12, Math.max(5, Math.round(num(document.getElementById('panelCount').value, 5))));
@@ -91,9 +131,12 @@
     }
 
     var qEl = checked('qty');
-    var qty = qEl && qEl.value === 'custom'
-      ? Math.max(10, Math.round(num(document.getElementById('qtyCustom').value, 10)))
-      : num(qEl ? qEl.value : 500, 500);
+    var qty = 0;
+    if (qEl) {
+      qty = qEl.value === 'custom'
+        ? Math.max(0, Math.round(num(document.getElementById('qtyCustom').value, 0)))
+        : num(qEl.value, 0);
+    }
 
     var paper = checked('paper');
     var bind = checked('bind');
@@ -103,29 +146,30 @@
     var srcfile = checked('srcfile');
 
     return {
-      org: checked('org') ? checked('org').value : '',
+      org: val(checked('org')),
       formatKey: key,
-      formatLabel: fmt.label,
+      formatLabel: fmt ? fmt.label : '',
+      panelW: fmt ? fmt.panelW : 99,
       panels: panels,
       sizeText: sizeText,
-      designBase: num(fEl && fEl.dataset.price, 770000),
+      designBase: num(fEl && fEl.dataset.price, 0),
       qty: qty,
       qtyUnit: unitForQty(qty),
-      paper: paper ? paper.value : '',
+      paper: val(paper),
       paperMult: num(paper && paper.dataset.mult, 1),
-      bind: bind ? bind.value : '',
+      bind: val(bind),
       bindUnit: num(bind && bind.dataset.unit, 0),
-      coat: coat ? coat.value : '',
+      coat: val(coat),
       coatUnit: num(coat && coat.dataset.unit, 0),
-      coatSide: coatSide ? coatSide.value : '단면',
+      coatSide: val(coatSide) || '단면',
       coatSideMult: num(coatSide && coatSide.dataset.mult, 1),
       finish: checkedAll('finish').map(function (el) {
         return { name: el.value, unit: num(el.dataset.unit, 0) };
       }),
       styles: checkedAll('style').map(function (el) { return el.value; }),
-      srcfile: srcfile ? srcfile.value : '제공 안 함',
+      srcfile: val(srcfile),
       srcfilePrice: num(srcfile && srcfile.dataset.price, 0),
-      due: due ? due.value : '일반',
+      due: val(due),
       dueDays: num(due && due.dataset.days, 10),
       dueRate: num(due && due.dataset.rate, 0)
     };
@@ -136,7 +180,7 @@
      ---------------------------------------------------------- */
   function calc(s) {
     // 단수가 늘어나면 인쇄 면적·판비가 함께 늘어난다 (3단 = 1.0)
-    var panelFactor = 0.7 + 0.1 * s.panels;
+    var panelFactor = s.panels ? 0.7 + 0.1 * s.panels : 1;
 
     var design = s.designBase + (s.panels > 5 ? (s.panels - 5) * PRICE.panelExtra : 0);
     var printing = Math.round(s.qtyUnit * s.paperMult * panelFactor) * s.qty;
@@ -173,6 +217,35 @@
   }
 
   /* ----------------------------------------------------------
+     단계 진행 상태
+     ---------------------------------------------------------- */
+  function readProgress(s, c) {
+    var doneFlags = STEPS.map(function (step) { return !!step.done(s, c); });
+    var first = doneFlags.indexOf(false);
+    return {
+      doneFlags: doneFlags,
+      frontier: first === -1 ? STEPS.length : first,
+      complete: first === -1,
+      remaining: STEPS.filter(function (step, i) { return !doneFlags[i]; })
+        .map(function (step) { return step.title; })
+    };
+  }
+
+  // 잠금 : 진행 단계보다 뒤에 있는 섹션은 입력을 막는다
+  function applyLocks(p) {
+    STEPS.forEach(function (step, i) {
+      if (!step.el) return;
+      var locked = i > p.frontier;
+      step.el.classList.toggle('is-locked', locked);
+      step.el.classList.toggle('is-current', i === p.frontier);
+      step.el.setAttribute('aria-disabled', locked ? 'true' : 'false');
+      Array.prototype.forEach.call(step.el.querySelectorAll('input'), function (el) {
+        el.disabled = locked;
+      });
+    });
+  }
+
+  /* ----------------------------------------------------------
      좌측 미리보기 (판형에 따라 SVG 를 그린다)
      ---------------------------------------------------------- */
   function paperFill(paper) {
@@ -181,9 +254,17 @@
     return '#ffffff';
   }
 
+  function svgPlaceholder() {
+    return '<svg viewBox="0 0 520 330" role="img" aria-label="판형 미선택">' +
+      '<rect x="120" y="35" width="280" height="260" rx="6" fill="#fff" stroke="#c4c4c8" stroke-width="1.5" stroke-dasharray="7 6"/>' +
+      '<text x="260" y="170" text-anchor="middle" font-size="13" fill="#9a9aa0">판형을 선택하면</text>' +
+      '<text x="260" y="192" text-anchor="middle" font-size="13" fill="#9a9aa0">미리보기가 표시됩니다.</text>' +
+      '</svg>';
+  }
+
   function svgSpread(s, back) {
     var W = 520, H = 330;
-    var sw = s.panels === 1 ? FORMAT['flat-a5'].spread[0] : s.panels * (s.formatKey === 'fold4' || s.panels >= 5 ? 100 : (s.formatKey === 'fold2' ? 148.5 : 99));
+    var sw = s.panels * s.panelW;
     var sh = 210;
     var scale = Math.min((W - 40) / sw, (H - 40) / sh);
     var w = sw * scale, h = sh * scale;
@@ -199,7 +280,7 @@
 
     for (var i = 0; i < s.panels; i++) {
       var px = x + pw * i;
-      // 앞면 첫 패널 = 표지
+      // 앞면 마지막 패널 = 표지
       var isCover = !back && i === (s.panels > 1 ? s.panels - 1 : 0);
       if (isCover) {
         out.push('<rect x="' + px + '" y="' + y + '" width="' + pw + '" height="' + h + '" fill="#101010" opacity=".92"/>');
@@ -233,8 +314,7 @@
 
   function svgFolded(s) {
     var W = 520, H = 330;
-    var fw = s.panels === 1 ? 148 : (s.formatKey === 'fold2' ? 148.5 : (s.formatKey === 'fold3' ? 99 : 100));
-    var fh = 210;
+    var fw = s.panelW, fh = 210;
     var scale = Math.min((W - 200) / fw, (H - 70) / fh);
     var w = fw * scale, h = fh * scale;
     var x = (W - w) / 2, y = (H - h) / 2 - 6;
@@ -259,17 +339,19 @@
     return out.join('');
   }
 
-  function renderVisual(s, c) {
+  function renderVisual(s) {
     var art = document.getElementById('stageArt');
-    art.innerHTML = view === 2 ? svgFolded(s) : svgSpread(s, view === 1);
-
-    document.getElementById('stageSpec').textContent =
-      s.formatLabel + ' · ' + s.sizeText + ' · ' + VIEWS[view];
-
-    var caption = view === 2
-      ? '접었을 때의 크기와 표지 인상을 확인하세요.'
-      : '선택한 판형과 접지 방식이 실시간으로 반영됩니다.';
-    document.getElementById('visualCaption').textContent = caption;
+    if (!s.formatKey) {
+      art.innerHTML = svgPlaceholder();
+      document.getElementById('stageSpec').textContent = '판형을 선택해 주세요';
+      document.getElementById('visualCaption').textContent = '판형을 선택하면 접지 방식이 실시간으로 반영됩니다.';
+    } else {
+      art.innerHTML = view === 2 ? svgFolded(s) : svgSpread(s, view === 1);
+      document.getElementById('stageSpec').textContent = s.formatLabel + ' · ' + s.sizeText + ' · ' + VIEWS[view];
+      document.getElementById('visualCaption').textContent = view === 2
+        ? '접었을 때의 크기와 표지 인상을 확인하세요.'
+        : '선택한 판형과 접지 방식이 실시간으로 반영됩니다.';
+    }
 
     // 닷
     var dots = document.getElementById('galDots');
@@ -291,14 +373,13 @@
     });
 
     // 미리보기 하단 요약
-    var eta = fmtDate(addBusinessDays(new Date(), s.dueDays));
     var meta = [
-      ['판형', s.formatLabel + ' (' + s.panels + '단)'],
-      ['수량', s.qty.toLocaleString('ko-KR') + '부'],
-      ['용지', s.paper],
-      ['코팅', s.coat + ' / ' + s.coatSide],
-      ['후가공', s.finish.length ? s.finish.map(function (f) { return f.name; }).join(', ') : '없음'],
-      ['예상 납품', eta]
+      ['판형', s.formatKey ? s.formatLabel + ' (' + s.panels + '단)' : '—'],
+      ['수량', s.qty ? s.qty.toLocaleString('ko-KR') + '부' : '—'],
+      ['용지', s.paper || '—'],
+      ['코팅', s.coat ? s.coat + ' / ' + s.coatSide : '—'],
+      ['후가공', s.finish.length ? s.finish.map(function (f) { return f.name; }).join(', ') : '—'],
+      ['예상 납품', s.due ? fmtDate(addBusinessDays(new Date(), s.dueDays)) : '—']
     ];
     document.getElementById('visualMeta').innerHTML = meta.map(function (m) {
       return '<li><span>' + m[0] + '</span><b>' + m[1] + '</b></li>';
@@ -308,34 +389,35 @@
   /* ----------------------------------------------------------
      요약 / 상단 바 렌더
      ---------------------------------------------------------- */
-  function renderSummary(s, c) {
-    var eta = fmtDate(addBusinessDays(new Date(), s.dueDays));
-
+  function renderSummary(s, c, p) {
+    var dash = '미선택';
     var specs = [
-      ['진행 기관', s.org],
-      ['판형', s.formatLabel + ' · ' + s.sizeText],
-      ['수량', s.qty.toLocaleString('ko-KR') + '부 (부당 ' + s.qtyUnit.toLocaleString('ko-KR') + '원 구간)'],
-      ['용지', s.paper],
-      ['제본 방식', s.bind + (c.bindApplies ? '' : ' (접지 마감 · 미적용)')],
-      ['코팅', s.coat + ' · ' + s.coatSide],
-      ['후가공', s.finish.length ? s.finish.map(function (f) { return f.name; }).join(', ') : '없음'],
-      ['스타일', s.styles.length ? s.styles.length + '개 선택 (' + s.styles.join(', ') + ')' : '미선택'],
-      ['작업 파일', s.srcfile],
-      ['납기', s.due + ' · ' + s.dueDays + ' 영업일 · ' + eta + ' 납품 예정']
+      ['진행 기관', s.org || dash],
+      ['판형', s.formatKey ? s.formatLabel + ' · ' + s.sizeText : dash],
+      ['수량', s.qty ? s.qty.toLocaleString('ko-KR') + '부 (부당 ' + s.qtyUnit.toLocaleString('ko-KR') + '원 구간)' : dash],
+      ['용지', s.paper || dash],
+      ['제본 방식', c.bindApplies ? (s.bind || dash) : (s.bind ? s.bind + ' (접지 마감 · 미적용)' : '접지 마감 · 해당 없음')],
+      ['코팅', s.coat ? s.coat + ' · ' + s.coatSide : dash],
+      ['후가공', s.finish.length ? s.finish.map(function (f) { return f.name; }).join(', ') : dash],
+      ['스타일', s.styles.length ? s.styles.length + '개 선택 (' + s.styles.join(', ') + ')' : dash],
+      ['작업 파일', s.srcfile || dash],
+      ['납기', s.due
+        ? s.due + ' · ' + s.dueDays + ' 영업일 · ' + fmtDate(addBusinessDays(new Date(), s.dueDays)) + ' 납품 예정'
+        : dash]
     ];
     document.getElementById('sumSpecs').innerHTML = specs.map(function (m) {
       return '<dt>' + m[0] + '</dt><dd>' + m[1] + '</dd>';
     }).join('');
 
-    var rows = [
-      ['디자인 (' + s.formatLabel + ')', won(c.design)],
-      ['인쇄 (' + s.paper + ' · ' + s.qty.toLocaleString('ko-KR') + '부)', won(c.printing)]
-    ];
+    var rows = [];
+    if (c.design) rows.push(['디자인 (' + s.formatLabel + ')', won(c.design)]);
+    if (c.printing) rows.push(['인쇄 (' + s.paper + ' · ' + s.qty.toLocaleString('ko-KR') + '부)', won(c.printing)]);
     if (c.binding) rows.push(['제본 (' + s.bind + ')', won(c.binding)]);
     if (c.coating) rows.push(['코팅 (' + s.coat + ' · ' + s.coatSide + ')', won(c.coating)]);
     if (c.finishing) rows.push(['후가공 (' + s.finish.map(function (f) { return f.name; }).join(', ') + ')', won(c.finishing)]);
     if (c.srcfile) rows.push(['작업 파일 제공', won(c.srcfile)]);
     if (c.rush) rows.push([s.due, won(c.rush)]);
+    if (!rows.length) rows.push(['선택한 항목', '없음']);
     rows.push(['공급가액', won(c.net)]);
     rows.push(['부가세 (10%)', won(c.vat)]);
 
@@ -346,8 +428,17 @@
     document.getElementById('sumPrice').innerHTML = html;
 
     document.getElementById('sumTotal').textContent = won(c.total);
-    document.getElementById('navPrice').textContent = won(c.total) + ' (VAT 포함)';
+    document.getElementById('sumTotalNote').textContent = p.complete ? 'VAT 포함' : 'VAT 포함 · 구성 중';
     document.getElementById('mbTotal').textContent = won(c.total);
+    document.getElementById('navPrice').textContent = p.complete
+      ? won(c.total) + ' (VAT 포함)'
+      : (c.total ? won(c.total) + ' (구성 중)' : '구성을 선택해 주세요');
+
+    var remain = document.getElementById('sumRemain');
+    remain.hidden = p.complete;
+    if (!p.complete) {
+      remain.textContent = '아직 선택하지 않은 단계가 있습니다 — ' + p.remaining.join(', ');
+    }
   }
 
   /* ----------------------------------------------------------
@@ -356,9 +447,9 @@
   function applyRules(s, c) {
     // 제본 : 접지 마감(4단 이하)에서는 비활성 안내
     var bindSec = document.getElementById('sec-bind');
-    document.getElementById('bindAlert').hidden = c.bindApplies;
+    document.getElementById('bindAlert').hidden = !s.formatKey || c.bindApplies;
     Array.prototype.forEach.call(bindSec.querySelectorAll('.cfg-card'), function (card) {
-      card.classList.toggle('is-muted', !c.bindApplies);
+      card.classList.toggle('is-muted', !!s.formatKey && !c.bindApplies);
     });
 
     // 스타일 : 최소 2개
@@ -376,14 +467,35 @@
   }
 
   /* ----------------------------------------------------------
+     다음 단계로 부드럽게 이동
+     ---------------------------------------------------------- */
+  function scrollToStep(index) {
+    var target = index >= STEPS.length
+      ? document.getElementById('cfgSummary')
+      : STEPS[index].el;
+    if (!target) return;
+    // 잠금 해제 상태가 반영된 뒤 이동시킨다
+    setTimeout(function () {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  }
+
+  /* ----------------------------------------------------------
      갱신 루프
      ---------------------------------------------------------- */
-  function update() {
+  function update(opts) {
     var s = readState();
     var c = calc(s);
+    var p = readProgress(s, c);
+
     applyRules(s, c);
-    renderVisual(s, c);
-    renderSummary(s, c);
+    applyLocks(p);
+    renderVisual(s);
+    renderSummary(s, c, p);
+
+    var advanced = p.frontier > frontier;
+    frontier = p.frontier;
+    if (initialized && advanced && opts && opts.autoScroll) scrollToStep(frontier);
   }
 
   /* ----------------------------------------------------------
@@ -398,8 +510,6 @@
         boxes.forEach(function (b) { if (b !== none) b.checked = false; });
       } else if (e.target.checked && none) {
         none.checked = false;
-      } else if (!boxes.some(function (b) { return b.checked; }) && none) {
-        none.checked = true;
       }
     }
     // 직접 입력 라디오를 켜면 입력칸으로 포커스
@@ -409,9 +519,10 @@
     if (e.target.name === 'format' && e.target.value === 'fold5') {
       document.getElementById('panelCount').focus();
     }
-    update();
+    update({ autoScroll: true });
   });
 
+  // 직접 입력은 타이핑 중 스크롤이 튀지 않도록 이동시키지 않는다
   form.addEventListener('input', function (e) {
     if (['panelCount', 'customSize', 'qtyCustom'].indexOf(e.target.id) > -1) update();
   });
@@ -423,12 +534,12 @@
     view = (view + 1) % VIEWS.length; update();
   });
 
-  // 견적 신청 : 스타일 2개 미선택이면 해당 섹션으로 이동
+  // 견적 신청 : 남은 단계가 있으면 그 단계로 이동
   document.getElementById('sumSubmit').addEventListener('click', function (e) {
-    if (checkedAll('style').length < 2) {
+    var s = readState(), c = calc(s), p = readProgress(s, c);
+    if (!p.complete) {
       e.preventDefault();
-      document.getElementById('sec-style').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      document.getElementById('styleAlert').hidden = false;
+      scrollToStep(p.frontier);
     }
   });
 
@@ -483,7 +594,7 @@
     pick('due', q.get('due'));
 
     var qty = q.get('qty');
-    if (qty) {
+    if (qty && qty !== '0') {
       var exact = form.querySelector('input[name="qty"][value="' + qty + '"]');
       if (exact) { exact.checked = true; }
       else {
@@ -506,4 +617,5 @@
   })();
 
   update();
+  initialized = true;
 })();

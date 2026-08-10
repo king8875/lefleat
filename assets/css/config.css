@@ -107,8 +107,16 @@ html { scroll-behavior: smooth; }
 /* ------------------------------------------------------------
    좌측 : 스티키 미리보기
    ------------------------------------------------------------ */
-.cfg-visual__sticky {
+.cfg-visual {
   position: sticky; top: calc(var(--header-h) + var(--cfg-nav-h) + 24px);
+  align-self: start;
+}
+.cfg-visual__sticky { position: static; }
+/* 화면이 낮으면 미리보기를 줄여 스티키 영역이 잘리지 않게 한다 */
+@media (min-width: 1001px) and (max-height: 900px) {
+  .cfg-stage { min-height: 360px; padding: 28px; }
+  .cfg-stage__art { max-width: 420px; }
+  .cfg-visual__meta { margin-top: 18px; gap: 8px 22px; }
 }
 .cfg-visual__caption {
   font-size: 14.5px; line-height: 1.6; color: var(--cfg-sub);
@@ -149,7 +157,30 @@ html { scroll-behavior: smooth; }
    우측 : 견적 선택 리스트
    ------------------------------------------------------------ */
 .cfg-options { display: block; }
-.cfg-sec { padding: 44px 0; border-bottom: 1px solid var(--cfg-line-soft); scroll-margin-top: calc(var(--header-h) + var(--cfg-nav-h) + 20px); }
+.cfg-sec {
+  padding: 44px 0; border-bottom: 1px solid var(--cfg-line-soft);
+  scroll-margin-top: calc(var(--header-h) + var(--cfg-nav-h) + 20px);
+  transition: opacity .28s var(--ease-out);
+}
+/* 이전 단계를 고르지 않으면 잠긴다 */
+.cfg-sec.is-locked { opacity: .4; }
+.cfg-sec.is-locked .cfg-card,
+.cfg-sec.is-locked .cfg-style,
+.cfg-sec.is-locked .cfg-seg__item span { cursor: not-allowed; }
+.cfg-sec.is-locked .cfg-card:hover { border-color: var(--cfg-line); }
+.cfg-sec.is-locked .cfg-style:hover .cfg-style__thumb img { transform: none; }
+.cfg-sec__lock {
+  display: none; align-items: center; gap: 6px; margin-top: 12px;
+  font-size: 12.5px; font-weight: 600; color: var(--cfg-sub);
+}
+.cfg-sec.is-locked .cfg-sec__lock { display: flex; }
+.cfg-sec__lock svg { width: 14px; height: 14px; }
+/* 지금 골라야 하는 단계 */
+.cfg-sec.is-current > .cfg-h2 { position: relative; }
+.cfg-sec.is-current > .cfg-h2::before {
+  content: ""; position: absolute; left: -18px; top: .42em;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--cfg-ink);
+}
 .cfg-sec:first-child { padding-top: 0; }
 .cfg-sec:last-of-type { border-bottom: 0; }
 .cfg-h2 {
@@ -245,6 +276,8 @@ html { scroll-behavior: smooth; }
   background: #fff8e6; border: 1px solid #f0dfae; border-radius: 10px;
   font-size: 13px; line-height: 1.6; color: #6a5320;
 }
+
+.cfg-alert--center { max-width: 560px; margin: 0 auto; text-align: center; }
 
 /* 도움말 카드 */
 .cfg-help {
@@ -349,7 +382,7 @@ html { scroll-behavior: smooth; }
 }
 @media (max-width: 1000px) {
   .cfg-layout { grid-template-columns: 1fr; gap: 12px; }
-  .cfg-visual__sticky { position: static; }
+  .cfg-visual { position: static; max-height: none; overflow: visible; }
   .cfg-stage { min-height: 340px; padding: 28px; }
   .cfg-visual__meta { margin-bottom: 30px; }
   .cfg-hero { flex-direction: column; align-items: flex-start; padding: 40px 0 30px; }

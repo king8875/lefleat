@@ -4,7 +4,7 @@
    - 앞 단계를 고르지 않으면 다음 단계는 잠긴다 (단계형 진행)
    - 단계를 고르면 다음 단계로 부드럽게 스크롤
    - 선택이 바뀌면 좌측 미리보기 / 요약 바 / 요약 금액을 즉시 갱신
-   - 단가는 시안용 예시값이며 PRICE 상수와 각 카드의 data-* 만 고치면 된다
+   - 단가표는 leaflet_quote.xlsx 「가격표(VAT포함)」 시트를 그대로 옮긴 것이다
    ============================================================ */
 (function () {
   'use strict';
@@ -13,25 +13,41 @@
   if (!form) return;
 
   /* ----------------------------------------------------------
-     단가 정의 (시안용 예시 단가)
+     단가표 — leaflet_quote.xlsx 「가격표(VAT포함)」 시트 그대로
+     모든 값은 디자인 + 인쇄 + 배송이 포함된 VAT 포함 금액이다.
+     수량 인덱스는 QTY 배열과 같은 순서로 맞춘다.
      ---------------------------------------------------------- */
+  var QTY = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 500, 1000, 1500, 2000];
+  var TABLE = {
+    'flat-1': [236500, 247500, 258500, 269500, 280500, 291500, 302500, 313500, 324500, 330000, 385000, 440000, 495000, 550000],
+    'flat-2': [352000, 368500, 385000, 396000, 412500, 423500, 440000, 451000, 467500, 484000, 550000, 627000, 693000, 770000],
+    'fold2':  [418000, 451000, 484000, 517000, 550000, 583000, 616000, 649000, 682000, 715000, 825000, 935000, 1045000, 1155000],
+    'fold3':  [473000, 506000, 539000, 572000, 605000, 638000, 671000, 704000, 737000, 770000, 880000, 990000, 1100000, 1210000],
+    'fold4':  [583000, 616000, 649000, 682000, 715000, 748000, 781000, 814000, 847000, 880000, 990000, 1100000, 1210000, 1320000]
+  };
+  // 옵션 추가 금액 (VAT 포함) — 수량 구간별
+  var OPTION = {
+    '표지코팅': [55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 110000, 110000, 110000, 110000],
+    '에폭시':   [330000, 330000, 330000, 330000, 330000, 330000, 330000, 330000, 330000, 330000, 330000, 330000, 330000, 330000],
+    '고급지':   [55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 110000, 165000, 220000]
+  };
   var PRICE = {
-    // 수량 구간별 인쇄 단가 (부당, 3단 접지 기준)
-    qtyTiers: [
-      { min: 10, unit: 3500 },
-      { min: 20, unit: 2600 },
-      { min: 30, unit: 2100 },
-      { min: 100, unit: 900 },
-      { min: 500, unit: 370 },
-      { min: 1000, unit: 290 },
-      { min: 1500, unit: 230 },
-      { min: 2000, unit: 190 }
-    ],
+    srcFile: 220000,     // 작업 파일 제공 (VAT 포함)
     baseDays: 10,        // 일반 납기 (영업일)
     rushPerDay: 0.1,     // 1 영업일 단축당 요율
     rushMaxDays: 3,      // 이 이상 단축은 별도 문의
     vatRate: 0.1
   };
+
+  function qtyIndex(qty) { return QTY.indexOf(qty); }
+  function tablePrice(formatKey, qty) {
+    var i = qtyIndex(qty);
+    return (i > -1 && TABLE[formatKey]) ? TABLE[formatKey][i] : 0;
+  }
+  function optionPrice(name, qty) {
+    var i = qtyIndex(qty);
+    return (i > -1 && OPTION[name]) ? OPTION[name][i] : 0;
+  }
 
   // 판형 정의 : 접었을 때 단수 / 한 면 폭(mm) / 인쇄 면
   var FORMAT = {
@@ -117,14 +133,6 @@
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function isoDate(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 
-  function unitForQty(qty) {
-    var unit = 0;
-    for (var i = 0; i < PRICE.qtyTiers.length; i++) {
-      if (qty >= PRICE.qtyTiers[i].min) unit = PRICE.qtyTiers[i].unit;
-    }
-    return unit;
-  }
-
   // 희망 수령일을 입력했으면 그날까지 남은 영업일로 단축 일수·요율을 구한다
   function dueFromDate(value) {
     var out = { ok: false, days: PRICE.baseDays, rate: 0, shortened: 0, date: null, tooTight: false };
@@ -183,14 +191,12 @@
       panelW: fmt ? fmt.panelW : 99,
       sides: fmt ? fmt.sides : 2,
       sizeText: fmt ? fmt.sizeText : '',
-      designBase: num(fEl && fEl.dataset.price, 0),
-      panelFactor: num(fEl && fEl.dataset.factor, 1),
       qty: qty,
-      qtyUnit: unitForQty(qty),
+      basePrice: tablePrice(key, qty),
       paper: val(paper),
-      paperMult: num(paper && paper.dataset.mult, 1),
+      paperPrice: val(paper) === '고급지' ? optionPrice('고급지', qty) : 0,
       finish: checkedAll('finish').map(function (el) {
-        return { name: el.value, unit: num(el.dataset.unit, 0) };
+        return { name: el.value, price: optionPrice(el.value, qty) };
       }),
       srcfile: val(srcfile),
       srcfilePrice: num(srcfile && srcfile.dataset.price, 0),
@@ -209,27 +215,28 @@
      금액 계산
      ---------------------------------------------------------- */
   function calc(s) {
-    var design = s.designBase;
-    var printing = Math.round(s.qtyUnit * s.paperMult * s.panelFactor) * s.qty;
+    // 가격표 금액은 모두 VAT 포함 (디자인 + 인쇄 + 배송)
+    var base = s.basePrice;
+    var paper = s.paperPrice;
+    var finishing = s.finish.reduce(function (a, f) { return a + f.price; }, 0);
+    var srcfile = s.srcfilePrice;
 
-    var finishUnit = s.finish.reduce(function (a, f) { return a + f.unit; }, 0);
-    var finishing = finishUnit * s.qty;
-
-    var subtotal = design + printing + finishing + s.srcfilePrice;
-    var rush = Math.round(subtotal * s.dueRate);
-    var net = subtotal + rush;
-    var vat = Math.round(net * PRICE.vatRate);
+    var incSubtotal = base + paper + finishing + srcfile;
+    var rush = Math.round(incSubtotal * s.dueRate);
+    var total = incSubtotal + rush;
+    var net = Math.round(total / (1 + PRICE.vatRate));   // 공급가액
+    var vat = total - net;
 
     return {
-      design: design,
-      printing: printing,
+      base: base,
+      paper: paper,
       finishing: finishing,
-      srcfile: s.srcfilePrice,
-      subtotal: subtotal,
+      srcfile: srcfile,
+      subtotal: incSubtotal,
       rush: rush,
       net: net,
       vat: vat,
-      total: net + vat
+      total: total
     };
   }
 
@@ -435,9 +442,11 @@
     }
     return [
       ['판형', s.formatKey ? s.formatLabel + ' · ' + s.sizeText : dash],
-      ['수량', s.qty ? s.qty.toLocaleString('ko-KR') + '부 (부당 ' + s.qtyUnit.toLocaleString('ko-KR') + '원 구간)' : dash],
-      ['용지', s.paper || dash],
-      ['후가공', s.finish.length ? s.finish.map(function (f) { return f.name; }).join(', ') : dash],
+      ['수량', s.qty ? s.qty.toLocaleString('ko-KR') + '부' : dash],
+      ['용지', s.paper ? s.paper + (s.paperPrice ? ' (+' + won(s.paperPrice) + ')' : '') : dash],
+      ['후가공', s.finish.length
+        ? s.finish.map(function (f) { return f.name + (f.price ? ' (+' + won(f.price) + ')' : ''); }).join(', ')
+        : dash],
       ['작업 파일', s.srcfile ? (s.srcfile === '제공' ? '제공' + (s.email ? ' · ' + s.email : '') : s.srcfile) : dash],
       ['납기', due]
     ];
@@ -464,6 +473,18 @@
      항목 간 연동 규칙
      ---------------------------------------------------------- */
   function applyRules(s) {
+    // 수량 카드 : 선택한 판형 기준 금액 (VAT 포함)
+    Array.prototype.forEach.call(document.querySelectorAll('[data-price-qty]'), function (el) {
+      var q = num(el.dataset.priceQty, 0);
+      el.textContent = s.formatKey ? won(tablePrice(s.formatKey, q)) : '판형 선택 후 표시';
+    });
+
+    // 용지·후가공 : 수량 구간별 추가 금액
+    var paperEl = document.querySelector('[data-price-paper]');
+    paperEl.textContent = s.qty ? '+' + won(optionPrice('고급지', s.qty)) : '수량별';
+    var coatEl = document.querySelector('[data-price-coat]');
+    coatEl.textContent = s.qty ? '+' + won(optionPrice('표지코팅', s.qty)) : '수량별';
+
     // 작업 파일 : '제공' 이면 받을 이메일 확인
     var emailEl = document.getElementById('fileEmail');
     var needEmail = s.srcfile === '제공';
@@ -651,9 +672,9 @@
     text(won(c.total), W - MX, y, 20, 800, '#101010', 'right');
 
     y += 52;
-    text('표기 금액은 시안용 예시 단가로 산출한 예상 견적입니다.', MX, y, 12, 400, '#8a8a90');
+    text('표기 금액은 리플렛 가격표(VAT 포함) 기준으로 산출한 예상 견적입니다.', MX, y, 12, 400, '#8a8a90');
     y += 20;
-    text('실제 견적은 원고량과 이미지 보정 범위에 따라 조정됩니다.', MX, y, 12, 400, '#8a8a90');
+    text('디자인·인쇄·배송 포함 / 원고량과 이미지 보정 범위에 따라 조정될 수 있습니다.', MX, y, 12, 400, '#8a8a90');
     y += 20;
     text('발행일 ' + now.getFullYear() + '. ' + (now.getMonth() + 1) + '. ' + now.getDate() +
       '  ·  리플렛마스터(디자인위드)  ·  02-6951-0402', MX, y, 12, 400, '#8a8a90');

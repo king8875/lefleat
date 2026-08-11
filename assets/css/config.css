@@ -160,11 +160,9 @@ html { scroll-behavior: smooth; }
 }
 /* 이전 단계를 고르지 않으면 잠긴다 */
 .cfg-sec.is-locked { opacity: .4; }
-.cfg-sec.is-locked .cfg-card,
-.cfg-sec.is-locked .cfg-style,
-.cfg-sec.is-locked .cfg-seg__item span { cursor: not-allowed; }
+.cfg-sec.is-locked .cfg-card { cursor: not-allowed; }
 .cfg-sec.is-locked .cfg-card:hover { border-color: var(--cfg-line); }
-.cfg-sec.is-locked .cfg-style:hover .cfg-style__thumb img { transform: none; }
+.cfg-sec.is-locked .cfg-card--inquiry { pointer-events: none; }
 .cfg-sec__lock {
   display: none; align-items: center; gap: 6px; margin-top: 12px;
   font-size: 12.5px; font-weight: 600; color: var(--cfg-sub);
@@ -242,6 +240,18 @@ html { scroll-behavior: smooth; }
 }
 .cfg-card--check:has(input:checked) .cfg-card__title::before { background-color: var(--cfg-ink); border-color: var(--cfg-ink); }
 
+/* 문의형 카드 — 금액 대신 견적문의 링크 */
+.cfg-card--inquiry { background: #fafafa; border-style: dashed; }
+.cfg-card--inquiry:hover { background: #fff; border-color: var(--cfg-ink); }
+.cfg-card__cta {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+  height: 36px; padding: 0 16px; border-radius: var(--radius-pill, 32px);
+  background: var(--cfg-ink); color: #fff;
+  font-size: 13.5px; font-weight: 600; white-space: nowrap;
+}
+.cfg-card__cta em { font-style: normal; }
+.cfg-card--inquiry:hover .cfg-card__cta { background: var(--accent-hover, #333); }
+
 /* 카드 안 직접 입력 */
 .cfg-inline-fields {
   display: none; margin-top: 14px; gap: 12px; flex-wrap: wrap; align-items: flex-end;
@@ -261,7 +271,7 @@ html { scroll-behavior: smooth; }
 .cfg-field input::placeholder { font-weight: 400; color: #a8a8ae; }
 .cfg-field input:hover { border-color: #6f6f75; }
 .cfg-field input:focus { border-color: var(--cfg-ink); outline: 2px solid rgba(16,16,16,.18); outline-offset: 1px; }
-.cfg-field input#customSize, .cfg-field input#qtyCustom { width: 178px; }
+.cfg-field input[type="date"] { width: 196px; }
 /* 단위(단/부) 는 입력칸 오른쪽에 붙인다 */
 .cfg-field { position: relative; }
 .cfg-field i {
@@ -319,122 +329,6 @@ html { scroll-behavior: smooth; }
 .cfg-help h3 { font-size: 15.5px; font-weight: 700; letter-spacing: -.02em; }
 .cfg-help p { margin-top: 6px; font-size: 13px; line-height: 1.6; color: var(--cfg-sub); }
 
-/* 스타일 썸네일 */
-.cfg-styles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
-.cfg-style { position: relative; cursor: pointer; }
-.cfg-style input { position: absolute; opacity: 0; width: 0; height: 0; }
-.cfg-style__thumb {
-  display: block; position: relative; overflow: hidden;
-  aspect-ratio: 4 / 3; border-radius: 12px; background: var(--cfg-bg-soft);
-  border: 1px solid var(--cfg-line-soft);
-  transition: border-color .16s, box-shadow .16s;
-}
-.cfg-style__thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s var(--ease-out); }
-.cfg-style:hover .cfg-style__thumb img { transform: scale(1.04); }
-.cfg-style__thumb::after {
-  content: ""; position: absolute; right: 8px; top: 8px;
-  width: 22px; height: 22px; border-radius: 50%;
-  background: rgba(255,255,255,.9) no-repeat center/13px
-    url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23b0b0b4' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 8.4 3.2 3.2L13 5'/%3E%3C/svg%3E");
-  box-shadow: 0 1px 3px rgba(0,0,0,.14);
-}
-.cfg-style:has(input:checked) .cfg-style__thumb { border-color: var(--cfg-ink); box-shadow: 0 0 0 2px var(--cfg-ink); }
-.cfg-style:has(input:checked) .cfg-style__thumb::after {
-  background-color: var(--cfg-ink);
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 8.4 3.2 3.2L13 5'/%3E%3C/svg%3E");
-}
-.cfg-style:has(input:focus-visible) .cfg-style__thumb { outline: 2px solid #0a84ff; outline-offset: 2px; }
-.cfg-style__name {
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-  margin-top: 8px; font-size: 13px; font-weight: 600; line-height: 1.4; text-align: center; letter-spacing: -.02em;
-}
-
-/* 스타일 더보기 */
-.cfg-styles__more { display: flex; align-items: center; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
-.cfg-styles__hint { font-size: 12.5px; color: var(--cfg-sub); }
-
-/* ------------------------------------------------------------
-   스타일 선택 팝업 (브라우저 크기의 80%)
-   ------------------------------------------------------------ */
-.cfg-modal { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; }
-.cfg-modal[hidden] { display: none; }
-.cfg-modal__backdrop { position: absolute; inset: 0; background: rgba(16,16,16,.5); backdrop-filter: blur(3px); }
-.cfg-modal__panel {
-  position: relative; z-index: 1;
-  width: 80vw; height: 80vh; min-width: 320px; min-height: 480px;
-  display: flex; flex-direction: column; overflow: hidden;
-  background: #fff; border-radius: 20px;
-  box-shadow: 0 24px 70px rgba(0,0,0,.28);
-  animation: cfgModalIn .22s var(--ease-out);
-}
-@keyframes cfgModalIn { from { opacity: 0; transform: translateY(12px) scale(.985); } }
-@media (prefers-reduced-motion: reduce) { .cfg-modal__panel { animation: none; } }
-.cfg-modal__head {
-  flex: 0 0 auto;
-  display: flex; align-items: flex-start; gap: 16px;
-  padding: 20px 22px 14px; border-bottom: 1px solid var(--cfg-line-soft);
-}
-.cfg-modal__title { flex: 1 1 auto; min-width: 0; }
-.cfg-modal__title h2 { font-size: 17px; font-weight: 800; letter-spacing: -.025em; }
-.cfg-modal__title p { margin-top: 4px; font-size: 12.5px; color: var(--cfg-sub); }
-.cfg-modal__count { flex: 0 0 auto; font-size: 13px; color: var(--cfg-sub); }
-.cfg-modal__count b { font-size: 16px; font-weight: 800; color: var(--cfg-ink); }
-.cfg-modal__close {
-  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: var(--cfg-bg-soft); color: #444;
-}
-.cfg-modal__close:hover { background: var(--fill-hover, #ededed); color: var(--cfg-ink); }
-.cfg-modal__close svg { width: 15px; height: 15px; }
-.cfg-modal__body { flex: 1 1 auto; min-height: 0; overflow: hidden auto; padding: 18px 22px 22px; overscroll-behavior: contain; }
-/* 원본 비율을 살린 메이슨리 배치 — 세로가 긴 리플렛도 잘리지 않게 한다 */
-.cfg-modal__grid { column-count: 4; column-gap: 16px; }
-.cfg-mitem {
-  position: relative; cursor: pointer;
-  display: inline-block; width: 100%; margin: 0 0 18px;
-  break-inside: avoid; -webkit-column-break-inside: avoid;
-}
-.cfg-mitem input { position: absolute; opacity: 0; width: 0; height: 0; }
-.cfg-mitem__thumb {
-  display: block; position: relative; overflow: hidden;
-  border-radius: 12px; background: var(--cfg-bg-soft);
-  border: 1px solid var(--cfg-line-soft); transition: box-shadow .16s, border-color .16s;
-}
-.cfg-mitem__thumb img { width: 100%; height: auto; display: block; }
-.cfg-mitem__thumb::after {
-  content: ""; position: absolute; right: 8px; top: 8px; width: 22px; height: 22px; border-radius: 50%;
-  background: rgba(255,255,255,.92) no-repeat center/13px
-    url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23b0b0b4' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 8.4 3.2 3.2L13 5'/%3E%3C/svg%3E");
-  box-shadow: 0 1px 3px rgba(0,0,0,.14);
-}
-.cfg-mitem:has(input:checked) .cfg-mitem__thumb { border-color: var(--cfg-ink); box-shadow: 0 0 0 2px var(--cfg-ink); }
-.cfg-mitem:has(input:checked) .cfg-mitem__thumb::after {
-  background-color: var(--cfg-ink);
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 8.4 3.2 3.2L13 5'/%3E%3C/svg%3E");
-}
-.cfg-mitem:has(input:focus-visible) .cfg-mitem__thumb { outline: 2px solid #0a84ff; outline-offset: 2px; }
-.cfg-mitem__name {
-  display: block; margin-top: 7px; font-size: 12.5px; font-weight: 600; line-height: 1.45;
-  letter-spacing: -.02em;
-  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-}
-.cfg-mitem__cat { display: block; margin-top: 2px; font-size: 11.5px; color: var(--cfg-sub); }
-.cfg-modal__foot {
-  flex: 0 0 auto;
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  padding: 14px 22px; border-top: 1px solid var(--cfg-line-soft); background: #fff; flex-wrap: wrap;
-}
-.cfg-modal__notice { font-size: 12px; color: var(--cfg-sub); }
-.cfg-modal__notice.is-warn { color: #b3382f; font-weight: 600; }
-.cfg-modal__actions { display: flex; gap: 10px; }
-body.cfg-modal-open { overflow: hidden; }
-@media (max-width: 1200px) { .cfg-modal__grid { column-count: 3; } }
-@media (max-width: 900px) {
-  .cfg-modal__panel { width: 94vw; height: 86vh; }
-  .cfg-modal__grid { column-count: 2; }
-}
-@media (max-width: 520px) { .cfg-modal__grid { column-count: 1; } }
-
 /* ------------------------------------------------------------
    견적 요약
    ------------------------------------------------------------ */
@@ -456,29 +350,6 @@ body.cfg-modal-open { overflow: hidden; }
 .cfg-receipt dd.is-total { font-size: 16px; font-weight: 800; }
 .cfg-summary__cta { display: flex; justify-content: center; gap: 12px; margin-top: 40px; flex-wrap: wrap; }
 .cfg-summary__foot { margin-top: 22px; font-size: 12.5px; line-height: 1.7; color: var(--cfg-sub); }
-
-/* ------------------------------------------------------------
-   FAQ
-   ------------------------------------------------------------ */
-.cfg-faq { margin-top: 70px; }
-.cfg-acc { max-width: 860px; margin: 34px auto 0; border-top: 1px solid var(--cfg-line-soft); }
-.cfg-acc details { border-bottom: 1px solid var(--cfg-line-soft); }
-.cfg-acc summary {
-  position: relative; list-style: none; cursor: pointer;
-  padding: 22px 44px 22px 0;
-  font-size: 16px; font-weight: 600; letter-spacing: -.02em;
-}
-.cfg-acc summary::-webkit-details-marker { display: none; }
-.cfg-acc summary::after {
-  content: ""; position: absolute; right: 6px; top: 50%; width: 18px; height: 18px; margin-top: -9px;
-  background: no-repeat center/18px
-    url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23101010' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M10 4v12M4 10h12'/%3E%3C/svg%3E");
-  transition: transform .2s var(--ease-out);
-}
-.cfg-acc details[open] summary::after {
-  transform: rotate(135deg);
-}
-.cfg-acc p { padding: 0 40px 24px 0; font-size: 14.5px; line-height: 1.75; color: var(--cfg-sub); }
 
 /* ------------------------------------------------------------
    모바일 하단 고정 견적 바
@@ -515,7 +386,6 @@ body.cfg-modal-open { overflow: hidden; }
   .cfg-sec { padding: 34px 0; }
   .cfg-h2 { font-size: 21px; }
   .cfg-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cfg-styles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cfg-help { flex-direction: column; align-items: flex-start; }
   .cfg-mobilebar { display: flex; bottom: 62px; }
   .cfg-main { padding-bottom: 150px; }

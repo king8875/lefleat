@@ -386,6 +386,10 @@ html { scroll-behavior: smooth; }
   .cfg-sec { padding: 34px 0; }
   .cfg-h2 { font-size: 21px; }
   .cfg-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* 설명이 긴 카드는 모바일에서 한 줄에 하나씩 */
+  #sec-paper .cfg-grid,
+  #sec-finish .cfg-grid,
+  #sec-file .cfg-grid { grid-template-columns: minmax(0, 1fr); }
   .cfg-help { flex-direction: column; align-items: flex-start; }
   .cfg-mobilebar { display: flex; bottom: 62px; }
   .cfg-main { padding-bottom: 150px; }
